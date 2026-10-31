@@ -1,7 +1,8 @@
-from flask import Flask, make_response, request
+from flask import Flask, make_response, request, jsonify
 from flask_migrate import Migrate
 
 from models import *
+from schemas import *
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
@@ -11,17 +12,29 @@ migrate = Migrate(app, db)
 
 db.init_app(app)
 
+workout_schema = WorkoutSchema()
+workouts_schema = WorkoutSchema(many=True)
+workout_detail_schema = WorkoutDetailSchema()
+
+exercise_schema = ExerciseSchema()
+exercises_schema = ExerciseSchema(many=True)
+exercise_detail_schema = ExerciseDetailSchema()
+
 # The workout routes
 
 
 @app.route("/workouts", methods=["GET"])
 def get_workouts():
-    return make_response({"message": "list all workouts"}, 200)
+    workouts = Workout.query.all()
+    return make_response(jsonify(workouts_schema.dump(workouts)), 200)
 
 
 @app.route("/workouts/<int:id>", methods=["GET"])
 def get_workout(id):
-    return make_response({"message": f"show workout {id}"}, 200)
+    workout = db.session.get(Workout, id)
+    if workout is None:
+        return make_response(jsonify({"error": "Workout not found"}), 404)
+    return make_response(jsonify(workout_detail_schema.dump(workout)), 200)
 
 
 @app.route("/workouts", methods=["POST"])
